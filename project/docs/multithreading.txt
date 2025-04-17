@@ -1,0 +1,23 @@
+┌────────────────────────────[ PCAP File Reader ]─────────────────────────────┐
+│  Reads raw packets from disk (I/O)                                          │
+│  ➤ Concurrent: constantly feeds packets into a shared queue                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+        ┌────────────[ Packet Queue (Concurrent Buffer) ]─────────────┐
+        │  Shared queue for handing off packets between threads        │
+        │  ➤ Concurrency: allows reading and parsing to overlap        │
+        └──────────────────────────────────────────────────────────────┘
+                          │
+       ┌──────────────────┴────────────────────┐
+       ▼                                       ▼
+[Parser Thread 1]                        [Parser Thread 2]
+Parses packets for AAPL                 Parses packets for MSFT
+➤ Parallelism: both run on different cores
+                          │
+                          ▼
+        ┌────────────[ Symbol File Writers ]─────────────┐
+        │ Each symbol (AAPL, MSFT, etc.) has its own     │
+        │ compressed file writer running in a thread     │
+        │ ➤ Concurrency: writing happens while parsing   │
+        └────────────────────────────────────────────────┘
