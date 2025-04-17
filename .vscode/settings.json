@@ -57,5 +57,6 @@
         "unordered_map": "cpp",
         "variant": "cpp",
         "vector": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "C:/Users/flame/OneDrive/Documents/CS421/ie421-group21-hft/project"
 }
