@@ -4,11 +4,11 @@ using namespace std;
 
 class Decompressor {
     public:
-        Decompressor();
-        ~Decompressor();
-        void Decompressor::RLEDecompress(const std::string& inputFile, const std::string& outputFile);
+        // Decompressor();
+        // ~Decompressor();
+        void RLEDecompress(const std::string& inputFile, const std::string& outputFile);
 
 
     private:
-        void deocmpress();
+        // void deocmpress();
 };

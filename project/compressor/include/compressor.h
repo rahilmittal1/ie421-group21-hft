@@ -4,11 +4,11 @@ using namespace std;
 
 class Compressor {
     public:
-        Compressor();
-        ~Compressor();
+        // Compressor();
+        // ~Compressor();
         void RLE(const std::string& inPath, const std::string& outPath);
 
 
     private:
-        void compress();
+        // void compress();
 };

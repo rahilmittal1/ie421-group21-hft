@@ -1,50 +1,30 @@
 #include "decompressor.h"
 #include <fstream>
 #include <iostream>
-#include <string>
+#include <vector>
+#include <cstdint>
 
-/**
-    Reverse of the simple RLE that emits: literal ≤2 copies as-is,
-    runs >2 as [value][count - 2].
-*/
-void Decompressor::RLEDecompress(const std::string& inputFile, const std::string& outputFile) {
-    std::ifstream in(inputFile, std::ios::binary);
-    if (!in.is_open()) {
-        std::cerr << "error opening compressed file: " << inputFile << std::endl;
-        return;
-    }
+void Decompressor::RLEDecompress(const std::string& inPath,
+                                 const std::string& outPath) {
+    std::ifstream in(inPath,  std::ios::binary);
+    std::ofstream out(outPath, std::ios::binary);
+    if (!in || !out) { std::cerr<<"I/O error\n"; return; }
 
-    std::ofstream out(outputFile, std::ios::binary);
-    if (!out.is_open()) {
-        std::cerr << "error opening output file: " << outputFile << std::endl;
-        return;
-    }
-
-    constexpr size_t MIN_RUN = 2;
-    char byte;
-
-    while (in.get(byte)) {
-        int next = in.peek();
-        if (next == EOF) {
-            // Last byte
-            out.put(byte);
-            break;
-        }
-
-        unsigned char offset = static_cast<unsigned char>(next);
-        if (offset > 0) {
-            // It's a run: consume offset and expand
-            in.get();  // consume the offset byte
-            size_t runLength = offset + MIN_RUN;
-            for (size_t i = 0; i < runLength; ++i) {
-                out.put(byte);
-            }
-        } else {
-            // Literal byte, just output it
-            out.put(byte);
+    while (true) {
+        int ic = in.get();
+        if (ic == EOF) break;
+        int8_t c = static_cast<int8_t>(ic);
+        if (c >= 0) {
+            // literal block of length c+1
+            std::vector<char> buf(c + 1);
+            in.read(buf.data(), c + 1);
+            out.write(buf.data(), c + 1);
+        } else if (c != -128) {
+            // run block of length 1-c
+            char value = in.get();
+            size_t runLen = static_cast<size_t>(1 - c);
+            for (size_t i = 0; i < runLen; ++i)
+                out.put(value);
         }
     }
-
-    in.close();
-    out.close();
 }
