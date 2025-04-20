@@ -23,3 +23,5 @@ _deps
 
 project/compressor/build/
 build/cmake/
+data/test_output/
+compression_tests

@@ -1,3 +1,4 @@
 build/libcompressor_lib.a
 build
 .vscode
+project/compressor/compression_tests
