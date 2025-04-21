@@ -1,5 +1,6 @@
 #include "compressor.h"
 #include "decompressor.h"
+
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -7,48 +8,67 @@
 #include <cassert>
 #include <filesystem>
 
-/**
- * Run a single RLE test: compress, decompress, assert equality, and print sizes.
- */
-void testRLE(const std::string& input_path,
-             const std::string& compressed_path,
-             const std::string& decompressed_path) {
-    Compressor compressor;
-    Decompressor decompressor;
-    // 1) Compress
-    compressor.RLE(input_path, compressed_path);
-    // 2) Decompress
-    decompressor.RLEDecompress(compressed_path, decompressed_path);
+/*---------------------------------------------------------*/
+/*  Utility: compare original and decompressed byte‑for‑byte */
+/*---------------------------------------------------------*/
+static void validateFilesEqual(const std::string& original, const std::string& restored, const std::string& label) {
+    std::ifstream f1(original, std::ios::binary);
+    std::ifstream f2(restored, std::ios::binary);
+    std::vector<char> v1{ std::istreambuf_iterator<char>(f1),
+                          std::istreambuf_iterator<char>() };
+    std::vector<char> v2{ std::istreambuf_iterator<char>(f2),
+                          std::istreambuf_iterator<char>() };
 
-    // 3) Report sizes
-    auto original_size   = std::filesystem::file_size(input_path);
-    auto compressed_size = std::filesystem::file_size(compressed_path);
-    std::cout << "[RLE] Original size:   " << original_size   << " bytes\n";
-    std::cout << "[RLE] Compressed size: " << compressed_size << " bytes\n";
-
-    // 4) Load file data
-    std::ifstream orig_in(input_path, std::ios::binary);
-    std::vector<char> orig_data{
-        std::istreambuf_iterator<char>(orig_in),
-        std::istreambuf_iterator<char>()
-    };
-
-    std::ifstream decomp_in(decompressed_path, std::ios::binary);
-    std::vector<char> decomp_data{
-        std::istreambuf_iterator<char>(decomp_in),
-        std::istreambuf_iterator<char>()
-    };
-
-    // 5) Validate
-    assert(orig_data == decomp_data && "Decompressed data does not match original!");
-    std::cout << "[RLE] Validation passed: decompressed data matches original.\n";
+    assert(v1 == v2 && (label + " decompression failed!").c_str());
+    std::cout << '[' << label << "] Validation passed: output matches input.\n";
 }
 
-int main() {
-    testRLE(
-      "../data/test_small.pcap",
-      "../data/test_small.pcap.rle",
-      "../data/test_small_decompressed.pcap"
-    );
+/*---------------------------------------------------------*/
+/*  RLE round‑trip                                         */
+/*---------------------------------------------------------*/
+static void testRLE(const std::string& input, const std::string& compressed, const std::string& restored) {
+    Compressor   c;
+    Decompressor d;
+
+    c.RLE(input, compressed);
+    d.RLEDecompress(compressed, restored);
+
+    std::cout << "[RLE] Original size:   " << std::filesystem::file_size(input)      << " B\n";
+    std::cout << "[RLE] Compressed size: " << std::filesystem::file_size(compressed) << " B\n";
+
+    validateFilesEqual(input, restored, "RLE");
+}
+
+/*---------------------------------------------------------*/
+/*  Time‑Delta (µs + LEB128) round‑trip                    */
+/*---------------------------------------------------------*/
+static void testTimeDelta(const std::string& input, const std::string& compressed, const std::string& restored) {
+    Compressor   c;
+    Decompressor d;
+
+    c.timeDelta(input, compressed);
+    d.timeDeltaDecompress(compressed, restored);
+
+    std::cout << "[TimeDelta] Original size:   " << std::filesystem::file_size(input)      << " B\n";
+    std::cout << "[TimeDelta] Compressed size: " << std::filesystem::file_size(compressed) << " B\n";
+
+    validateFilesEqual(input, restored, "TimeDelta");
+}
+
+/*---------------------------------------------------------*/
+int main()
+{
+    const std::string inPcap        = "../data/test_small.pcap";
+    /* RLE paths */
+    const std::string rleOut        = "../data/test_output/test_small.pcap.rle";
+    const std::string rleRestored   = "../data/test_output/test_small_decompressed.pcap";
+    /* Time‑Delta paths */
+    const std::string tdOut         = "../data/test_output/test_small.pcap.tdelta";
+    const std::string tdRestored    = "../data/test_output/test_small_tdelta_decompressed.pcap";
+
+    testRLE(inPcap, rleOut, rleRestored);
+    testTimeDelta(inPcap, tdOut, tdRestored);
+
+    std::cout << "All tests passed.\n";
     return 0;
 }
