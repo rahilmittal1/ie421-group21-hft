@@ -28,11 +28,13 @@ endif()
 # Source files (relative to "src" directory)
 set(SOURCES
     src/main.cpp
+    src/storage_format.cpp # Add the new source file here
 )
 
 # Header files (relative to "include" directory)
 set(HEADERS
     include/header.h
+    include/storage_format.h # Add the corresponding header if not already listed implicitly
 )
 
 # Automatically add all .cpp files from benchmarking/

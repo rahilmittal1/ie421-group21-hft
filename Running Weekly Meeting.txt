@@ -1,0 +1,142 @@
+﻿Website Resources
+* IEX website: https://iextrading.com/trading/market-data/
+* IEX Parser: link
+4/17/2025
+Notes:
+* Mahir plan of attack
+* Prisha tasks for Thursday 4/24. 
+* Reconstruction of the file
+   * How do we do this if we are separating the file into a bunch of smaller files
+   * Is our focus on interpretable data or compression
+Questions for David:
+* Are we focusing on interpretable data at the end of compression or is our goal to focus on creating interpretable file structure with unusable data
+
+
+Comparing our uncompressed to og uncompressed:
+make sure that after decompression, your output file is:
+* Identical (or functionally equivalent) to the original raw .pcap file.
+* Correctness check.
+Test Should Be:
+1. Start with the original .pcap file → original.pcap
+2. Run your compression → produces compressed.bin (or whatever format)
+3. Run your decompression → produces restored.pcap
+4. Compare restored.pcap to original.pcap
+ You can use tools like:
+   1. diff original.pcap restored.pcap
+   2. cmp original.pcap restored.pcap
+Assignments
+   * Compression/decompression - Notes
+   * SOhum
+   * Packet sequence number
+   * Run-length/huffman
+   * Prisha
+   * File parsing & restructuring
+   * Mahir
+   * Rahil
+   * Due date
+   * Tuesday to bring any issues up
+   * Thursday final deadline
+
+
+4/15/2025
+Notes:
+   *  Still having some issues understanding the IEX 
+   *  Focusing lossless compression and decompression
+   * What should we do on thursday
+   * Could start with segmented dev of the compression algo
+   * Instead, focus on the step 1-3 he was mentioning to begin with
+   * Components
+   * Compression
+   * Decompression
+   * Sorting packets by ticker
+   * Analyzing global headers
+Questions for David:
+   * Should we be using GZ as the benchmark to beat?
+   * For the sorting by ticker, do we want to just create files with all the packets related to a specific ticker?
+   * 
+
+Thursday Plan:
+   *  Compression
+   * Decompression
+   * Sorting packets by ticker
+   * Analyzing global headers
+
+
+Todos:
+   *  
+   *  
+   * 4/10/2025
+   * Notes
+   * Goal: 
+   * Approach
+   *    * Questions for David
+   * Deliverable form
+   *  C++ command line compression alg (unusable compressed file, have to build back up)
+   *  C++ command line compression alg (usable compressed file)
+   *  Python application, potentially connected to IEX or something
+   *                  
+   * Approach
+   * Take PCAP files
+   * Do our own preprocessing
+   * Where ideas for reducing repeated information
+   * Then run out-of the box algorithm
+   * Get compression statistics
+   * Create process to build back the original file
+   * Ensure/show some way that the file still matches the original
+   * Todos
+   * General
+   * Understand PCAP file structure
+   * Identify redundancies
+   * Gain context on the overall industry usage of the files
+   * IEX Download Parser
+   * INdividual
+   * Mahir
+   * Existing data compression algorithms
+   * Sohum
+   * Specialties about the IEX PCAPs vs general PCAP
+   * Prisha
+   * Existing data compression algorithms
+   * Rahil
+   * Benchmarking metrics/process, updating the github
+   * Skills / Worksplit
+   *   
+   * A
+   * A
+
+
+
+
+
+
+Background from David:
+   * start with DEEP, but ideally do DEEP+ too
+   * IEX is one of the easiest because (last i checked) per file all the ethernet, IP UDP is just one multicast channel
+   * start by examinig which fields(s) per packet differ (if any) at the ethernet, ip, udp section
+   * to get started to make it simpler first convert from the more complicated pcap format to the original and treat the original as your lossless
+   * if the project goes well, we can look at doing an IE497 to use the original more complicated format (its not that complicated but if you've never worked wiht pcaps or raw binary formats before it might be a lot)
+   * step 1: just generate a format that removes all the redundant ethernet IP UDP data
+   * step 2: separate files per symbol
+   * step 3: separate files per symbol per event (focused mostly on trades, bids, asks); but as part of this do a histogram of the event type per symbol and make sure there aren't others used often. for not that common events, it isn't worth the time to come up wiht more complicated separate files, so just have a fourth bucket of per symbol other events
+   * to help with testing, generate smaller test pcaps wiht a limited amount of data, ask chatgpt for syntax but you can either start from the beginning us etcpdump -c (num packets), or there are tools like tshark etc for setting start and end times)
+   * step 4: (possibly) break out the fields so taht separate portions of the file for each field, the reason being this may likely compress better
+   * step 5: overlay with a fusefs usermode file system so that in real time you can generate virtual pcaps on the fiel system that are backed by your compression format and as the user reads from teh virtual pcap it reconsrtucts it on the fly reading from all the underlying per symbol per type files
+   * 
+
+
+
+
+
+
+
+
+
+
+
+
+
+Common Algorithms Used for PCAP compression 
+Source for the following
+   * Gzip
+   * LZ4
+   * Snappy
+   * Bzip2
