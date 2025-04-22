@@ -28,11 +28,13 @@ endif()
 # Source files (relative to "src" directory)
 set(SOURCES
     src/main.cpp
+    parser/parser.cpp # Add the new parser source file
 )
 
 # Header files (relative to "include" directory)
 set(HEADERS
     include/header.h
+    parser/parser.h   # Add the new parser header file
 )
 
 # Automatically add all .cpp files from benchmarking/
@@ -64,6 +66,7 @@ target_link_libraries(${PROJECT_NAME} Boost::boost)
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/benchmarking
+    ${CMAKE_CURRENT_SOURCE_DIR}/parser # Add the parser directory
 )
 
 ####################
