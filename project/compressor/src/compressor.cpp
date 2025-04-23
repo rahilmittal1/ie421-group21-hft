@@ -4,7 +4,13 @@
 #include <vector>
 #include <cstdint>
 #include "utils/SimplePcapReader.h"
+#include <cstring>
 
+
+//header codes
+constexpr size_t kHdrLen   = 42;          // Ethernet(14) + IPv4(20) + UDP(8)
+constexpr uint8_t kOpSame  = 0x00;
+constexpr uint8_t kOpNew   = 0x01;
 
 inline uint64_t zigzag(int64_t v) { return (v << 1) ^ (v >> 63); }
 inline int64_t  unzigzag(uint64_t v){ return (v >> 1) ^ -static_cast<int64_t>(v & 1); }
@@ -122,6 +128,61 @@ void Compressor::timeDelta(const std::string& inPath, const std::string& outPath
     out.flush();
 }
 
+
+/**
+ * Input must be a PCAP file
+ * time-delta encoding in microseconds with stripping of repetitive headers
+ */
+void Compressor::timeDeltaWithHdr(const std::string& inPath, const std::string& outPath) {
+    /* 0) copy the original 24‑byte PCAP global header */
+    char globalHdr[24];
+    { std::ifstream src(inPath, std::ios::binary);
+    src.read(globalHdr, 24); }
+
+    SimplePcapReader reader(inPath);
+    std::ofstream out(outPath, std::ios::binary);
+    out.write(globalHdr, 24);
+
+    PacketView pkt;
+    bool   firstPkt = true;
+    uint64_t prevUs = 0;
+    std::vector<uint8_t> buf; buf.reserve(16);
+
+    uint8_t tmpl[kHdrLen]; bool tmplSet = false;
+
+    while (reader.readNext(pkt)) {
+        /* ---------- 1) timestamp Δ  ---------- */
+        uint64_t curUs = pkt.absTs / 1'000ULL;
+        int64_t  delta = firstPkt ? 0 : static_cast<int64_t>(curUs - prevUs);
+        prevUs = curUs;
+
+        if (firstPkt) {
+            out.write(reinterpret_cast<char*>(&curUs), 8);   // base T0
+            firstPkt = false;
+        }
+        writeLEB128(delta, buf);
+        out.write((char*)buf.data(), buf.size()); buf.clear();
+
+        /* ---------- 2) header template ---------- */
+        const uint8_t* hdr = pkt.data;
+        const uint8_t* payload = pkt.data + kHdrLen;
+        uint32_t payLen = pkt.len - kHdrLen;
+
+        if (tmplSet && std::memcmp(tmpl, hdr, kHdrLen) == 0) {
+            out.put(kOpSame);
+        } else {
+            out.put(kOpNew);
+            out.write((char*)hdr, kHdrLen);
+            std::memcpy(tmpl, hdr, kHdrLen);
+            tmplSet = true;
+        }
+
+        /* ---------- 3) payload length + bytes ---- */
+        writeLEB128(payLen, buf);
+        out.write((char*)buf.data(), buf.size()); buf.clear();
+        out.write((char*)payload, payLen);
+    }
+}
 
 
 void Compressor::writeLEB128(int64_t delta, std::vector<uint8_t>& out) {

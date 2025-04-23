@@ -3,6 +3,7 @@
 using namespace std;
 #include <string>
 #include <vector>
+#include <cstdint>
 
 
 class Compressor {
@@ -11,6 +12,7 @@ class Compressor {
         // ~Compressor();
         void RLE(const std::string& inPath, const std::string& outPath);
         void timeDelta(const std::string& inPath, const std::string& outPath);
+        void timeDeltaWithHdr(const std::string& inPath, const std::string& outPath);
         
 
 
@@ -20,6 +22,8 @@ class Compressor {
         
         // void compress();
 };
+
+
 
 
 #endif

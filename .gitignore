@@ -3,3 +3,4 @@ build
 .vscode
 project/compressor/compression_tests
 project/compressor/tests/pcapview.exe
+.vscode/settings.json

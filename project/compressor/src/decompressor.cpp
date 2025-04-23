@@ -4,6 +4,11 @@
 #include <vector>
 #include <cstdint>
 
+//header codes
+constexpr size_t kHdrLen   = 42;          // Ethernet(14) + IPv4(20) + UDP(8)
+constexpr uint8_t kOpSame  = 0x00;
+constexpr uint8_t kOpNew   = 0x01;
+
 
 inline uint64_t zigzag(int64_t v) { return (v << 1) ^ (v >> 63); }
 inline int64_t  unzigzag(uint64_t v){ return (v >> 1) ^ -static_cast<int64_t>(v & 1); }
@@ -114,3 +119,59 @@ void Decompressor::timeDeltaDecompress(const std::string& inPath,const std::stri
     out.flush();
 }
 
+
+void Decompressor::timeDeltaHdrDecompress(const std::string& inPath, const std::string& outPath) {
+    std::ifstream in(inPath,  std::ios::binary);
+    std::ofstream out(outPath, std::ios::binary | std::ios::trunc);
+    if (!in || !out) { std::cerr << "I/O error\n"; return; }
+
+    /* 0) passthrough 24‑byte global header */
+    char globalHdr[24]; in.read(globalHdr, 24); out.write(globalHdr, 24);
+
+    /* read base timestamp */
+    uint64_t baseUs = 0; in.read((char*)&baseUs, 8);
+    uint64_t prevUs = baseUs;
+
+    uint8_t tmpl[kHdrLen]; bool tmplSet = false;
+
+    auto readVarInt = [&in](int64_t& v)->bool {
+    uint64_t r = 0; int s = 0, b;
+    do { b = in.get(); if (!in) return false;
+    r |= uint64_t(b & 0x7F) << s; s += 7;
+    } while (b & 0x80);
+    v = unzigzag(r); return true;
+    };
+
+    std::vector<char> payload;
+    while (in)
+    {
+        /* 1) delta‑t */
+        int64_t delta; if (!readVarInt(delta)) break;
+        uint64_t absUs = prevUs + delta; prevUs = absUs;
+
+        /* 2) opcode / header */
+        int op = in.get(); if (!in) break;
+        if (op == kOpNew) {
+            in.read((char*)tmpl, kHdrLen); tmplSet = true;
+        } else if (op != kOpSame || !tmplSet) {
+            std::cerr << "Template error\n"; break;
+        }
+
+        /* 3) payload length + bytes */
+        int64_t pLenSigned; if (!readVarInt(pLenSigned)) break;
+        size_t pLen = size_t(pLenSigned);
+        payload.resize(pLen);
+        in.read(payload.data(), pLen);
+
+        /* 4) emit full packet */
+        uint32_t incl = kHdrLen + pLen;
+        uint32_t orig = incl;
+        uint32_t ts_sec  = absUs / 1'000'000ULL;
+        uint32_t ts_usec = absUs % 1'000'000ULL;
+
+        out.write((char*)&ts_sec, 4);  out.write((char*)&ts_usec, 4);
+        out.write((char*)&incl, 4);    out.write((char*)&orig, 4);
+        out.write((char*)tmpl, kHdrLen);
+        out.write(payload.data(), pLen);
+    }
+}
