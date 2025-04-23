@@ -28,6 +28,8 @@ endif()
 # Source files (relative to "src" directory)
 set(SOURCES
     src/main.cpp
+    compressor/src/compressor.cpp
+    compressor/src/decompressor.cpp
 )
 
 # Header files (relative to "include" directory)
