@@ -14,10 +14,8 @@
 static void validateFilesEqual(const std::string& original, const std::string& restored, const std::string& label) {
     std::ifstream f1(original, std::ios::binary);
     std::ifstream f2(restored, std::ios::binary);
-    std::vector<char> v1{ std::istreambuf_iterator<char>(f1),
-                          std::istreambuf_iterator<char>() };
-    std::vector<char> v2{ std::istreambuf_iterator<char>(f2),
-                          std::istreambuf_iterator<char>() };
+    std::vector<char> v1{ std::istreambuf_iterator<char>(f1), std::istreambuf_iterator<char>() };
+    std::vector<char> v2{ std::istreambuf_iterator<char>(f2), std::istreambuf_iterator<char>() };
 
     assert(v1 == v2 && (label + " decompression failed!").c_str());
     std::cout << '[' << label << "] Validation passed: output matches input.\n";
@@ -55,6 +53,19 @@ static void testTimeDelta(const std::string& input, const std::string& compresse
     validateFilesEqual(input, restored, "TimeDelta");
 }
 
+static void testTimeDeltaHdr(const std::string& input, const std::string& compressed, const std::string& restored) {
+    Compressor   c;
+    Decompressor d;
+
+    c.timeDeltaWithHdr(input, compressed);
+    d.timeDeltaHdrDecompress(compressed, restored);
+
+    std::cout << "[TimeDeltaHdr] Original size:   " << std::filesystem::file_size(input)      << " B\n";
+    std::cout << "[TimeDeltaHdr] Compressed size: " << std::filesystem::file_size(compressed) << " B\n";
+
+    validateFilesEqual(input, restored, "TimeDeltaHdr");
+}
+
 /*---------------------------------------------------------*/
 int main()
 {
@@ -65,9 +76,13 @@ int main()
     /* Time‑Delta paths */
     const std::string tdOut         = "../data/test_output/test_small.pcap.tdelta";
     const std::string tdRestored    = "../data/test_output/test_small_tdelta_decompressed.pcap";
+    /* Time‑Delta-Hdr paths */
+    const std::string tdhOut         = "../data/test_output/test_small.pcap.tdeltahdr";
+    const std::string tdhRestored    = "../data/test_output/test_small_tdelta_hdr_decompressed.pcap";
 
     testRLE(inPcap, rleOut, rleRestored);
     testTimeDelta(inPcap, tdOut, tdRestored);
+    testTimeDeltaHdr(inPcap, tdhOut, tdhRestored);
 
     std::cout << "All tests passed.\n";
     return 0;
