@@ -1,0 +1,21 @@
+Vagrant.configure("2") do |config|
+  # Base box
+  config.vm.box = "ubuntu/focal64"
+
+  # Sync your project directory into /vagrant
+  config.vm.synced_folder ".", "/vagrant"
+
+  # Use VirtualBox (or switch to :parallels if on Apple Silicon + Parallels)
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = 2048
+    vb.cpus   = 2
+  end
+
+  # Provision: install all dev deps for your C++ + pcap + compression work
+  config.vm.provision "shell", inline: <<-SHELL
+    apt-get update
+    apt-get install -y build-essential cmake git pkg-config \
+      libpcap-dev libboost-all-dev zstd liblz4-dev
+    # (any other libs: fmt, spdlog, etc.)
+  SHELL
+end

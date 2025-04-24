@@ -28,6 +28,7 @@ endif()
 # Source files (relative to "src" directory)
 set(SOURCES
     src/main.cpp
+    src/parser/parser.cpp
 )
 
 # Header files (relative to "include" directory)
@@ -64,7 +65,11 @@ target_link_libraries(${PROJECT_NAME} Boost::boost)
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/benchmarking
+    /opt/homebrew/include
 )
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${PCAP_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} ${PCAP_LIBRARIES})
 
 ####################
 #   Optimizations  #
@@ -89,3 +94,17 @@ set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAK
 ####################
 
 # Add dependencies here if needed (e.g., linking external libraries)
+
+# libpcap
+# Manually link libpcap on macOS (Homebrew)
+target_include_directories(${PROJECT_NAME} PRIVATE /opt/homebrew/include)
+target_link_libraries(${PROJECT_NAME} /opt/homebrew/Cellar/libpcap/1.10.5/lib/libpcap.dylib)
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${PCAP_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} ${PCAP_LIBRARIES})
+
+# Link libraries
+target_link_libraries(${PROJECT_NAME}
+    Boost::boost
+    /opt/homebrew/Cellar/libpcap/1.10.5/lib/libpcap.dylib
+)
