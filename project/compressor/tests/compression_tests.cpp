@@ -55,6 +55,29 @@ static void testTimeDelta(const std::string& input, const std::string& compresse
     validateFilesEqual(input, restored, "TimeDelta");
 }
 
+
+/*---------------------------------------------------------*/
+/*  Header Deduplication + Restoration round‑trip         */
+/*---------------------------------------------------------*/
+static void testHeaderRoundTrip(const std::string& input,
+    const std::string& compressed,
+    const std::string& restored) {
+Compressor   c;
+Decompressor d;
+
+// Remove duplicate Ethernet/IP/UDP headers
+c.removeRepetitiveHeaders(input, compressed);
+// Restore full PCAP with headers reinserted
+d.RepetitiveHeadersDecompress(compressed, restored);
+
+std::cout << "[HeaderRoundTrip] Original size:   " << std::filesystem::file_size(input)      << " B\n";
+std::cout << "[HeaderRoundTrip] Compressed size: " << std::filesystem::file_size(compressed) << " B\n";
+std::cout << "[HeaderRoundTrip] Restored size:   " << std::filesystem::file_size(restored)   << " B\n";
+
+// Validate lossless
+validateFilesEqual(input, restored, "HeaderRoundTrip");
+}
+
 /*---------------------------------------------------------*/
 int main()
 {
@@ -68,6 +91,11 @@ int main()
 
     testRLE(inPcap, rleOut, rleRestored);
     testTimeDelta(inPcap, tdOut, tdRestored);
+    
+    /* Header Removal paths */
+    const std::string hdrOut        = "../data/test_output/test_small_headerless.pcap";
+    const std::string hdrRestored   = "../data/test_output/test_small_headerless_restored.pcap";
+    testHeaderRoundTrip(inPcap, hdrOut, hdrRestored);
 
     std::cout << "All tests passed.\n";
     return 0;

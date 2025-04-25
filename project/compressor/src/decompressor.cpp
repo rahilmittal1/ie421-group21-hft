@@ -114,3 +114,55 @@ void Decompressor::timeDeltaDecompress(const std::string& inPath,const std::stri
     out.flush();
 }
 
+// Restores the original PCAP by reinserting headers from the dictionary.
+void Decompressor::RepetitiveHeadersDecompress(const std::string& inPath,
+    const std::string& outPath) {
+    std::ifstream in(inPath, std::ios::binary);
+    std::ofstream out(outPath, std::ios::binary);
+    if (!in || !out) {
+        std::cerr << "[restoreRepetitiveHeaders] I/O Error\n";
+        return;
+    }
+
+    // 1. Copy global PCAP header (24 bytes).
+    std::vector<char> globalHeader(24);
+    in.read(globalHeader.data(), globalHeader.size());
+    out.write(globalHeader.data(), globalHeader.size());
+
+    // 2. Read dictionary count
+    uint32_t dictSize;
+    in.read(reinterpret_cast<char*>(&dictSize), sizeof(dictSize));
+
+    // 3. Load dictionary of network headers
+    std::vector<std::array<char,42>> dict(dictSize);
+    for (uint32_t i = 0; i < dictSize; ++i) {
+        in.read(dict[i].data(), dict[i].size());
+    }
+
+    // 4. Reconstruct packets
+    while (true) {
+        // Read PCAP per-packet header
+        std::array<char,16> pktHdr;
+        if (!in.read(pktHdr.data(), pktHdr.size())) break;
+
+        // Read header index
+        uint32_t hdrIndex;
+        in.read(reinterpret_cast<char*>(&hdrIndex), sizeof(hdrIndex));
+
+        // Read payload (remaining bytes until next packet)
+        // We infer payload length from original pktHdr included length minus 42
+        uint32_t inclLen;
+        std::memcpy(&inclLen, pktHdr.data() + 8, sizeof(inclLen));
+        uint32_t payloadLen = inclLen - 42;
+        std::vector<char> payload(payloadLen);
+        in.read(payload.data(), payloadLen);
+
+        // Write per-packet header
+        out.write(pktHdr.data(), pktHdr.size());
+        // Write full packet: network header + payload
+        out.write(dict[hdrIndex].data(), dict[hdrIndex].size());
+        out.write(payload.data(), payload.size());
+    }
+}
+
+
