@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.12)
 
 # Set C++ Standard
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF) # Prevent compiler-specific extensions
 
 #####################
@@ -25,37 +25,50 @@ endif()
 #   Source & Headers   #
 ########################
 
-# Source files (relative to "src" directory)
+# Source files (relative to CMAKE_CURRENT_SOURCE_DIR)
 set(SOURCES
     src/main.cpp
-    parser/parser.cpp # Add the new parser source file
+    parser/parser.cpp
+    # Add other source files if any (e.g., benchmarking/benchmark.cpp)
 )
 
-# Header files (relative to "include" directory)
+# Header files (relative to CMAKE_CURRENT_SOURCE_DIR)
 set(HEADERS
-    include/header.h
-    parser/parser.h   # Add the new parser header file
+    include/header.h # Assuming this exists, adjust if needed
+    parser/parser.h
+    # Add other header files if any
 )
 
-# Automatically add all .cpp files from benchmarking/
-file(GLOB BENCHMARK_SOURCES benchmarking/*.cpp)
-list(APPEND SOURCES ${BENCHMARK_SOURCES})
+# Find Boost (if required by other parts of your project, e.g., WebSocket++)
+# find_package(Boost REQUIRED)
 
-# Automatically add all header files from include/ and benchmarking/
-file(GLOB BENCHMARK_HEADERS benchmarking/*.h)
-list(APPEND HEADERS ${BENCHMARK_HEADERS})
+# --- Manually find Pcap ---
+# Remove the standard find_package for Pcap
+# find_package(Pcap REQUIRED)
+# if(NOT Pcap_FOUND)
+#     message(FATAL_ERROR "Pcap library not found...")
+# endif()
 
-# Find Boost (required for WebSocket++)
-find_package(Boost REQUIRED)
+# Find the pcap library file within Homebrew's lib directory
+find_library(PCAP_LIBRARY NAMES pcap libpcap PATHS /opt/homebrew/lib)
+if(NOT PCAP_LIBRARY)
+    message(FATAL_ERROR "libpcap library not found in /opt/homebrew/lib. Please ensure libpcap is installed via Homebrew (`brew install libpcap`).")
+endif()
+message(STATUS "Found Pcap library: ${PCAP_LIBRARY}")
+# --- End Manually find Pcap ---
 
-# Add WebSocket++ Include Path
-include_directories(/usr/local/include)
+
+# Add WebSocket++ Include Path (if needed)
+# include_directories(/usr/local/include) # Adjust path if necessary
 
 # Create the executable
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
 # Link Boost (if needed)
-target_link_libraries(${PROJECT_NAME} Boost::boost)
+# target_link_libraries(${PROJECT_NAME} Boost::boost)
+
+# Link Pcap using the found library path
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PCAP_LIBRARY})
 
 
 ########################
@@ -65,8 +78,11 @@ target_link_libraries(${PROJECT_NAME} Boost::boost)
 # Ensure project includes the necessary directories
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/benchmarking
-    ${CMAKE_CURRENT_SOURCE_DIR}/parser # Add the parser directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/parser
+    # Add Pcap include directory from Homebrew directly
+    /opt/homebrew/include
+    # Add other include directories (e.g., benchmarking)
+    # ${CMAKE_CURRENT_SOURCE_DIR}/benchmarking
 )
 
 ####################
